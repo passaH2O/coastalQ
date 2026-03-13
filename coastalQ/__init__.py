@@ -1,5 +1,5 @@
 #!/usr/bin/env python
 
-__version__ = '0.0.0'
+__version__ = '0.0'
 
 from .delta_partition import DeltaPartition
