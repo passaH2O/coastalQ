@@ -52,7 +52,7 @@ class DeltaPartition:
         transform_matrix = I - self.width_adjacency.T
         self.norm_partitioning = np.linalg.inv(transform_matrix) @ routing_init
 
-        return self.norm_partitioning
+        return
 
     def partition_discharge(self, discharge):
         """
