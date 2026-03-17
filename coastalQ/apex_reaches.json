@@ -1,106 +1,106 @@
 [
   {
     "delta_name":"amazon",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   },
   {
     "delta_name":"colville",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   },
   {
     "delta_name":"danube",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   },
   {
     "delta_name":"dneiper",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   },
   {
     "delta_name":"fly",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   },
   {
     "delta_name":"hay",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   },
   {
     "delta_name":"irrawaddy",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   },
   {
     "delta_name":"krishna",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   },
   {
     "delta_name":"lena",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   },
   {
     "delta_name":"mackenzie",
-    "apex_reach_id": 0
+    "apex_sword_reach": [82213000081,82212100071]
   },
   {
     "delta_name":"mahakam",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   },
   {
     "delta_name":"mekong",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   },
   {
     "delta_name":"mississippi",
-    "apex_reach_id": 0
+    "apex_sword_reach": [74210000055]
   },
   {
     "delta_name":"mossy",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   },
   {
     "delta_name":"niger",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   },
   {
     "delta_name":"orinoco",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   },
   {
     "delta_name":"parana",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   },
   {
     "delta_name":"pearl",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   },
   {
     "delta_name": "po",
-    "apex_reach_id": 21406100015
+    "apex_sword_reach": [21406100015]
   },
   {
     "delta_name":"red",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   },
   {
     "delta_name":"rioni",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   },
   {
     "delta_name":"selenga",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   },
   {
     "delta_name":"wairau",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   },
   {
     "delta_name":"wax",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   },
   {
     "delta_name":"yangtze",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   },
   {
     "delta_name":"yukon",
-    "apex_reach_id": 0
+    "apex_sword_reach": [0]
   }
 ]

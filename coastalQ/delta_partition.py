@@ -1,32 +1,32 @@
 #!/usr/bin/env python
 
-import numpy as np
 import os
+import glob
+import numpy as np
+import pandas as pd
 from netCDF4 import Dataset
 
 class DeltaPartition:
-    def __init__(self, delta_ID, **kwargs):
-        self.delta_ID = delta_ID
+    def __init__(self, delta_name, output_dir=None, **kwargs):
+        self.delta_name = delta_name.lower() # ensure delta name is lowercase for consistency with metadata
         self.width_adjacency = None
-        self.inflow_reach_ID = None
+        self.apex_sword_ids = None
+        self.output_dir = output_dir
 
         for key, value in kwargs.items():
             setattr(self, key, value)
 
+    def assign_inlets(self, apex_sword_ids):
+        """Method to assign SWORD reach IDs for delta inlets (i.e. reaches where discharge is partitioned from) based on metadata in apex_reaches.json file."""
+        self.apex_sword_ids = apex_sword_ids
+        return
+
     def set_width_adjacency(self):
         """Placeholder for method to set width adjacency matrix for discharge partitioning in each delta."""
         # Assumed to be loading pre-saved width adjacency matrices for each delta from disk, or (eventually) calculating them from the SWORD river width data.
-        # Dummy data for now
-        self.width_adjacency = np.array([
-            [0, 0.6, 0.4, 0,   0  ],
-            [0, 0,   0,   0.5, 0.5],
-            [0, 0,   0,   0,   0  ],
-            [0, 0,   0,   0,   0  ],
-            [0, 0,   0,   0,   0  ]
-        ])
         return
 
-    def build_routing_vector(self, width_adjacency=None):
+    def compute_edge_weights(self, width_adjacency=None):
         """
         Take a width-weighed adjacency matrix and convert it to a 1D partitioning vector for all sub-reaches
         
@@ -34,7 +34,7 @@ class DeltaPartition:
         ----------
         width_adjacency (np.ndarray) : Width-weighted adjacency matrix for some delta network
 
-        Returns
+        Saves
         ----------
         (np.ndarray) Normalized 1D vector of fraction of apex inflow partitioned to each link
         """
@@ -51,7 +51,26 @@ class DeltaPartition:
         I = np.eye(num_sub_reaches)
         transform_matrix = I - self.width_adjacency.T
         self.norm_partitioning = np.linalg.inv(transform_matrix) @ routing_init
+        return
 
+    def load_edge_weights(self, networks_directory):
+        """
+        Load a pre-compiled edge list with width-weighted discharge partitioning computed from RivGraph for each delta.
+        
+        Parameters
+        ----------
+        networks_directory (str) : Path to directory containing edge list and weights for each delta,
+        saved as {delta_name}_reaches.csv in subdirectory for each delta
+
+        Saves
+        ----------
+        self.local_reach_IDs (list) : List of local reach IDs for each sub-reach
+        
+        self.norm_partitioning (np.ndarray) : Normalized 1D vector of fraction of apex inflow partitioned to each link
+        """
+        reaches = pd.read_csv(os.path.join(networks_directory, self.delta_name, f"{self.delta_name}_reaches.csv"))
+        self.local_reach_IDs = reaches['reach_id_R'].to_list()
+        self.norm_partitioning = reaches['rg_flux'].to_numpy().astype(float)
         return
 
     def partition_discharge(self, discharge):
@@ -67,9 +86,9 @@ class DeltaPartition:
         (np.ndarray) 2D array of discharge values partitioned into each delta sub-reach
         """
         if getattr(self, 'norm_partitioning', None) is None:
-            self.build_routing_vector() # make sure routing vector is built
+            self.load_edge_weights() # make sure routing vector is loaded
         if isinstance(discharge, (float, int)):
-            discharge = np.array([discharge]) # convert to array if single value
+            discharge = np.array([discharge]) # convert to np.ndarray if not already
 
         # partition discharge according to routing vector
         self.sub_reach_discharge = discharge[:,np.newaxis] * self.norm_partitioning
