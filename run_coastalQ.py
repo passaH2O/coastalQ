@@ -21,26 +21,26 @@ ALGO_METADATA = {
         'qvar':'Q',
         'time':'time_str'
     },
-    'hivdi': {
-        'qvar':'reach/Q',
-        'time':'time'
-    },
-    'neobam':{
-        'qvar':'q/q',
-        'time':'time_str'
-    },
-    'metroman':{
-        'qvar':'average/allq',
-        'time':'time_str'
-    },
-    'sic4dvar':{
-        'qvar':'Q_da',
-        'time':'times'
-    },
-    'sad':{
-        'qvar':'Qa',
-        'time':'time_str'
-    },
+    # 'hivdi': {
+    #     'qvar':'reach/Q',
+    #     'time':'time'
+    # },
+    # 'neobam':{
+    #     'qvar':'q/q',
+    #     'time':'time_str'
+    # },
+    # 'metroman':{
+    #     'qvar':'average/allq',
+    #     'time':'time_str'
+    # },
+    # 'sic4dvar':{
+    #     'qvar':'Q_da',
+    #     'time':'times'
+    # },
+    # 'sad':{
+    #     'qvar':'Qa',
+    #     'time':'time_str'
+    # },
     'consensus':{
         'qvar':'consensus_q',
         'time':'time_str'
@@ -65,16 +65,17 @@ DELTA_NETWORK_DIR = mntdir / 'coastalQ' / 'delta_networks'
 DELTA_NAMES = next(os.walk(DELTA_NETWORK_DIR))[1] # just directory names
 APEX_REACHES = json.load(open(mntdir / 'coastalQ' / 'apex_reaches.json'))
 
-for ALGO, metadata in ALGO_METADATA.items():
+for ALGO, METADATA in ALGO_METADATA.items():
     # infolder = mntdir / 'flpe' / ALGO
-    infolder = Path(r'C:/Users/kwright/Documents/Projects/ETH_SWOT_Confluence/SWOT-Confluence-Offline/confluence_withDelta/withDelta_mnt') / 'flpe' / ALGO
+    INFOLDER = Path(r'C:/Users/kwright/Documents/Projects/ETH_SWOT_Confluence/SWOT-Confluence-Offline/confluence_withDelta/withDelta_mnt') / 'flpe' / ALGO
     
-    files = glob.glob(str(infolder / '*.nc'))
+    files = glob.glob(str(INFOLDER / '*.nc'))
     if len(files) == 0:
         continue # skip if no files for this algorithm
     
     for NAME in DELTA_NAMES:
         try:
+            # instantiate delta object and load edge weights from disk
             delta_partition = DeltaPartition(delta_name=NAME, output_dir=OUTDIR)
             delta_partition.load_edge_weights(DELTA_NETWORK_DIR)
 
@@ -82,13 +83,15 @@ for ALGO, metadata in ALGO_METADATA.items():
             inflow_ids = [r['apex_sword_ids'] for r in APEX_REACHES if r['delta_name'] == NAME][0]
             delta_partition.assign_inlets(inflow_ids)
             
-            # to-do: grab discharge for that reach from earlier modules
-            apex_discharge = np.array([5, 100, 2000]).astype(np.float32) # placeholder
+            # grab discharge data for the relevant reaches from the algorithm folder
+            delta_inflow = delta_partition.combine_and_clean_discharge(INFOLDER, ALGO, METADATA)
 
-            delta_discharge = delta_partition.partition_discharge(apex_discharge)
+            # partition discharge to sub-reaches
+            delta_discharge = delta_partition.partition_discharge(delta_inflow.values)#, delta_inflow['time'])
 
             # save in outdir as deltaname_algorithm.nc, e.g. "mississippi_consensus.nc"
-            delta_partition.save_partitioned_discharge(algorithm_name=ALGO) # to-do: loop over algorithm names and save for each
+            delta_partition.save_partitioned_discharge(algorithm_name=ALGO)
+            print(f"Successfully processed delta {NAME} for algorithm {ALGO}")
         
         except Exception as e:
             print(f"Error processing delta {NAME} for algorithm {ALGO}: {e}")

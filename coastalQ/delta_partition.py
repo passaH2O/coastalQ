@@ -77,7 +77,55 @@ class DeltaPartition:
         self.norm_partitioning = reaches['rg_flux'].to_numpy().astype(float)
         return
 
-    def partition_discharge(self, discharge):
+    def combine_and_clean_discharge(self, infolder, algo, metadata):
+        """
+        Read in discharge time series for all SWORD reaches corresponding to the delta apex, sum discharge across reaches for each time step, filter out missing data, and return cleaned discharge time series to be partitioned in the delta.
+
+        Parameters
+        ----------
+        infolder (str) : Path to directory containing SWORD discharge output files for all reaches, saved as {reach_id}_{algorithm_name}.nc
+        algo (str) : Name of the discharge algorithm
+        metadata (dict) : Dictionary containing metadata for that algorithm
+
+        Returns
+        ----------
+        (xr.DataArray) Cleaned discharge time series summed across all apex reaches for the delta, with time dimension and any missing data filtered out
+        """
+        inflow_files = [infolder / f'{reach_id}_{algo}.nc' for reach_id in self.apex_sword_ids]
+        
+        cleaned_datasets = []
+        for file in inflow_files:
+            # Open the dataset
+            ds = xr.open_dataset(file)
+            # make sense of the time variable
+            parsed_times = pd.to_datetime(ds[metadata['time']].values, errors='coerce')
+            parsed_times = parsed_times.tz_localize(None).astype('datetime64[ns]') # ensure timezone precision
+            ds = ds.assign_coords(time=(ds[metadata['time']].dims, parsed_times))
+
+            # make time main dimension if it's not already
+            main_dim = ds[metadata['time']].dims[0]
+            if main_dim != 'time':
+                ds = ds.swap_dims({main_dim: 'time'})
+            
+            # filter out any time steps where the time variable is no_data (i.e. invalid)
+            valid_time_mask = ds['time'].notnull()
+            ds_clean = ds.sel(time=valid_time_mask)
+            
+            # append cleaned dataset to list
+            cleaned_datasets.append(ds_clean)
+
+        # concatenate datasets along the time dimension, match by calendar day, and sum
+        combined_ds = xr.concat(cleaned_datasets, data_vars='all', dim='time')
+        combined_ds = combined_ds.sortby('time')
+        daily_discharge = combined_ds[metadata['qvar']].resample(time='1D').sum(dim='time', skipna=True, min_count=1)
+        # daily_discharge['nt'] = combined_ds['nt'].resample(time='1D').last(skipna=True).astype(int)
+
+        # keep only time steps with valid discharge values
+        daily_discharge = daily_discharge.dropna(dim='time', how='all')
+
+        return daily_discharge
+
+    def partition_discharge(self, discharge, time=None):
         """
         Method to partition discharge into delta sub-reaches.
         
@@ -93,6 +141,9 @@ class DeltaPartition:
             self.load_edge_weights() # make sure routing vector is loaded
         if isinstance(discharge, (float, int)):
             discharge = np.array([discharge]) # convert to np.ndarray if not already
+        
+        # if time is not None, ensure it's a numpy array and save as attribute
+        self.time = np.array(time) if time is not None else np.arange(discharge.shape[0])
 
         # partition discharge according to routing vector
         self.sub_reach_discharge = discharge[:,np.newaxis] * self.norm_partitioning
@@ -114,7 +165,7 @@ class DeltaPartition:
         
         xrds = xr.Dataset(
             coords={
-                # 'nt' : (['nt'], ),
+                'nt' : (['nt'], self.time),
                 'reach' : (['reach'], np.array(self.local_reach_IDs).astype(int))
             },
             data_vars = {
