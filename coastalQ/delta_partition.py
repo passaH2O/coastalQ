@@ -4,7 +4,8 @@ import os
 import glob
 import numpy as np
 import pandas as pd
-from netCDF4 import Dataset
+# from netCDF4 import Dataset
+import xarray as xr
 
 class DeltaPartition:
     def __init__(self, delta_name, output_dir=None, **kwargs):
@@ -15,6 +16,9 @@ class DeltaPartition:
 
         for key, value in kwargs.items():
             setattr(self, key, value)
+        
+        if not os.path.exists(self.output_dir):
+            os.makedirs(self.output_dir, exist_ok=True)
 
     def assign_inlets(self, apex_sword_ids):
         """Method to assign SWORD reach IDs for delta inlets (i.e. reaches where discharge is partitioned from) based on metadata in apex_reaches.json file."""
@@ -94,6 +98,66 @@ class DeltaPartition:
         self.sub_reach_discharge = discharge[:,np.newaxis] * self.norm_partitioning
 
         return self.sub_reach_discharge
+
+    def save_partitioned_discharge(self, algorithm_name):
+        """
+        Method to save partitioned discharge as NetCDF file.
+
+        Parameters
+        ----------
+        algorithm_name (str) : Name of discharge algorithm used to compute discharge at delta apex, to be included in output filename and metadata
+
+        Saves
+        ----------
+        NetCDF file in output directory with filename {delta_name}_{algorithm_name}.nc, e.g. "mississippi_consensus.nc"
+        """
+        
+        xrds = xr.Dataset(
+            coords={
+                # 'nt' : (['nt'], ),
+                'reach' : (['reach'], np.array(self.local_reach_IDs).astype(int))
+            },
+            data_vars = {
+                'Q' : (['nt','reach'], self.sub_reach_discharge)
+            }
+        )
+
+        xrds['reach'].attrs = {
+            'long_name': 'Local Delta Reach ID',
+            'units': '-'
+        }
+
+        xrds['Q'].attrs = {
+            'standard_name': 'water_volume_transport_in_river_channel',
+            'long_name': 'River Discharge',
+            'units': 'm3 s-1',
+            'valid_min': 0.0,
+            '_FillValue': 'NaN',
+            'coverage_content_type': 'modelResult',
+            'coordinates': 'time reach_id',
+            'type' : 'data'
+        }
+
+        xrds.attrs = {
+            'title': 'SWOT Delta Discharge Product',
+            'intitution': 'ETH Zurich, Los Alamos National Lab, Penn State University',
+            'source': 'SWOT coastalQ Confluence Module',
+            'creator_name': 'Kyle Wright, Eleanor Hensen, Sabrina Ashik, Jon Schwenk, Paola Passalacqua, Anastasia Piliouras',
+            'creator_email': 'kwright at ethz.ch',
+            'file_type': 'array',
+            'Conventions': 'CF-1.10, ACDD-1.3',
+            'module_version': 0.0,
+            'summary': 'Delta Discharge',
+            'history': "None",
+            'comment': "None",
+            'keywords': 'SWOT, SWORD, Delta, coastalQ, Discharge',
+            'license': 'Freely Distributed'
+        }
+
+        # save to output directory with filename {delta_name}_{algorithm_name}.nc, e.g. "mississippi_consensus.nc"
+        filename = os.path.join(self.output_dir, f"{self.delta_name}_{algorithm_name}.nc")
+        xrds.to_netcdf(filename) # Save
+        return
 
     def update_SoS(self):
         """Placeholder for method to update SWOT discharge output files with discharge assigned in the deltas."""
