@@ -1,39 +1,43 @@
 [
   {
     "delta_name":"amazon",
-    "apex_sword_ids": [0]
+    "apex_sword_ids": [62307000295,62307000035,62235100011,62221500131,62232300021],
+    "notes": "First two reaches (62307000295,62307000035) classified as 'tidal' and might not provide discharge, upstream river-classified reaches not yet identified."
   },
   {
     "delta_name":"colville",
-    "apex_sword_ids": [0]
+    "apex_sword_ids": [81380100091]
   },
   {
     "delta_name":"danube",
-    "apex_sword_ids": [0]
+    "apex_sword_ids": [22710500031]
   },
   {
     "delta_name":"dneiper",
-    "apex_sword_ids": [0]
+    "apex_sword_ids": [22511100031]
   },
   {
     "delta_name":"fly",
-    "apex_sword_ids": [0]
+    "apex_sword_ids": [53130900041],
+    "notes": "Closest reaches (53130900033, 53130900033) are classified as tidal, both have been substituted with upstream river-classified reaches."
   },
   {
     "delta_name":"hay",
-    "apex_sword_ids": [0]
+    "apex_sword_ids": [82254100021]
   },
   {
     "delta_name":"irrawaddy",
-    "apex_sword_ids": [0]
+    "apex_sword_ids": [44581100081],
+    "notes": "Closest reach (44581100385) is classified as tidal, has been substituted with upstream river-classified reach. Need to check why left branch is excluded from the partitioning."  
   },
   {
     "delta_name":"krishna",
-    "apex_sword_ids": [0]
+    "apex_sword_ids": [45361000101,45361000521],
+    "notes": "Closest reaches (45361000865, 45361000865) are classified as tidal, both have been substituted with upstream river-classified reaches. Required summing additional streams to capture the full inflows."
   },
   {
     "delta_name":"lena",
-    "apex_sword_ids": [0]
+    "apex_sword_ids": [34211300011]
   },
   {
     "delta_name":"mackenzie",
@@ -41,66 +45,71 @@
   },
   {
     "delta_name":"mahakam",
-    "apex_sword_ids": [52180100015]
+    "apex_sword_ids": [52180100091,52180100101],
+    "notes": "Closest reaches (52180100015, 52180100015) are classified as tidal, both have been substituted with upstream river-classified reaches."
   },
   {
     "delta_name":"mekong",
-    "apex_sword_ids": [0]
+    "apex_sword_ids": [44230000021,44220100031],
+    "notes": "Closest reaches (44210000365, 44210000255) are classified as tidal, both have been substituted with upstream river-classified reaches."
   },
   {
     "delta_name":"mississippi",
-    "apex_sword_ids": [74210000055]
+    "apex_sword_ids": [74210000131],
+    "notes": "Closest reach (74210000045) is classified as tidal, has been substituted with upstream river-classified reach."
   },
   {
     "delta_name":"mossy",
-    "apex_sword_ids": [0]
+    "apex_sword_ids": [71230600751]
   },
   {
     "delta_name":"niger",
-    "apex_sword_ids": [0]
+    "apex_sword_ids": [14210000051]
   },
   {
     "delta_name":"orinoco",
-    "apex_sword_ids": [0]
+    "apex_sword_ids": [61510000131]
   },
   {
     "delta_name":"parana",
-    "apex_sword_ids": [0]
+    "apex_sword_ids": [64217000015]
   },
   {
     "delta_name":"pearl",
-    "apex_sword_ids": [0]
+    "apex_sword_ids": [43640300101,43663100111,43662300081]
   },
   {
     "delta_name": "po",
-    "apex_sword_ids": [21406100015]
+    "apex_sword_ids": [21406100051],
+    "notes": "Closest reach (21406100015) is classified as tidal, has been substituted with upstream river-classified reach."
   },
   {
     "delta_name":"red",
-    "apex_sword_ids": [0]
+    "apex_sword_ids": [43681000101]
   },
   {
     "delta_name":"rioni",
-    "apex_sword_ids": [0]
+    "apex_sword_ids": [22190200021]
   },
   {
     "delta_name":"selenga",
-    "apex_sword_ids": [0]
+    "apex_sword_ids": []
   },
   {
     "delta_name":"wairau",
-    "apex_sword_ids": [0]
+    "apex_sword_ids": []
   },
   {
     "delta_name":"wax",
-    "apex_sword_ids": [0]
+    "apex_sword_ids": []
   },
   {
     "delta_name":"yangtze",
-    "apex_sword_ids": [0]
+    "apex_sword_ids": []
   },
   {
     "delta_name":"yukon",
-    "apex_sword_ids": [0]
+    "apex_sword_ids": [81210100081],
+    "notes": "Closest reaches (81210100075, 81210100425) are classified as tidal, have been substituted with upstream river-classified reach."
   }
 ]
