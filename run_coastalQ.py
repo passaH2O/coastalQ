@@ -33,10 +33,10 @@ ALGO_METADATA = {
     #     'qvar':'average/allq',
     #     'time':'time_str'
     # },
-    # 'sic4dvar':{
-    #     'qvar':'Q_da',
-    #     'time':'times'
-    # },
+    'sic4dvar':{
+        'qvar':'Q_da',
+        'time':'times'
+    },
     # 'sad':{
     #     'qvar':'Qa',
     #     'time':'time_str'
@@ -74,6 +74,7 @@ for ALGO, METADATA in ALGO_METADATA.items():
         continue # skip if no files for this algorithm
     
     for NAME in DELTA_NAMES:
+    # NAME = 'mackenzie' # for testing
         try:
             # instantiate delta object and load edge weights from disk
             delta_partition = DeltaPartition(delta_name=NAME, output_dir=OUTDIR)
@@ -87,7 +88,8 @@ for ALGO, METADATA in ALGO_METADATA.items():
             delta_inflow = delta_partition.combine_and_clean_discharge(INFOLDER, ALGO, METADATA)
 
             # partition discharge to sub-reaches
-            delta_discharge = delta_partition.partition_discharge(delta_inflow.values)#, delta_inflow['time'])
+            delta_discharge = delta_partition.partition_discharge(delta_inflow.values)
+            time_since = delta_partition.time_to_epoch(delta_inflow['time'])
 
             # save in outdir as deltaname_algorithm.nc, e.g. "mississippi_consensus.nc"
             delta_partition.save_partitioned_discharge(algorithm_name=ALGO)

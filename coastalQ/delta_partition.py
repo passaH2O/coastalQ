@@ -8,10 +8,11 @@ import pandas as pd
 import xarray as xr
 
 class DeltaPartition:
-    def __init__(self, delta_name, output_dir=None, **kwargs):
+    def __init__(self, delta_name, output_dir=None, base_date="2020-01-01T00:00:00Z", **kwargs):
         self.delta_name = delta_name.lower() # ensure delta name is lowercase for consistency with metadata
         self.width_adjacency = None
         self.apex_sword_ids = None
+        self.base_date = pd.Timestamp(base_date) # reference time for output file datetimes
         self.output_dir = output_dir
 
         for key, value in kwargs.items():
@@ -97,6 +98,12 @@ class DeltaPartition:
         for file in inflow_files:
             # Open the dataset
             ds = xr.open_dataset(file)
+            
+            # for sic4dvar, clean up some dimensions as it causes problems later
+            if algo == 'sic4dvar':
+                ds = ds.drop_dims('nodes')
+                ds = ds.swap_dims({'nt': 'time'})
+
             # make sense of the time variable
             parsed_times = pd.to_datetime(ds[metadata['time']].values, errors='coerce')
             parsed_times = parsed_times.tz_localize(None).astype('datetime64[ns]') # ensure timezone precision
@@ -110,7 +117,7 @@ class DeltaPartition:
             # filter out any time steps where the time variable is no_data (i.e. invalid)
             valid_time_mask = ds['time'].notnull()
             ds_clean = ds.sel(time=valid_time_mask)
-            
+
             # append cleaned dataset to list
             cleaned_datasets.append(ds_clean)
 
@@ -125,7 +132,7 @@ class DeltaPartition:
 
         return daily_discharge
 
-    def partition_discharge(self, discharge, time=None):
+    def partition_discharge(self, discharge):
         """
         Method to partition discharge into delta sub-reaches.
         
@@ -141,14 +148,29 @@ class DeltaPartition:
             self.load_edge_weights() # make sure routing vector is loaded
         if isinstance(discharge, (float, int)):
             discharge = np.array([discharge]) # convert to np.ndarray if not already
-        
-        # if time is not None, ensure it's a numpy array and save as attribute
-        self.time = np.array(time) if time is not None else np.arange(discharge.shape[0])
 
         # partition discharge according to routing vector
         self.sub_reach_discharge = discharge[:,np.newaxis] * self.norm_partitioning
 
         return self.sub_reach_discharge
+
+    def time_to_epoch(self, times):
+        """
+        Helper function to convert datetimes to float epoch for saving in NetCDF conventions.
+
+        Parameters
+        ----------
+        times (np.ndarray) : 1D array of datetimes corresponding to discharge time series
+
+        Returns
+        ----------
+        (np.ndarray) 1D array of floats corresponding to days since base date
+        """
+        epoch = pd.Timestamp(self.base_date)
+        times = pd.to_datetime(times)
+        days = (times.tz_localize(None) - epoch.tz_localize(None)).total_seconds() / (24*3600)
+        self.time_since = np.array([float(t) for t in days])
+        return self.time_since
 
     def save_partitioned_discharge(self, algorithm_name):
         """
@@ -165,7 +187,7 @@ class DeltaPartition:
         
         xrds = xr.Dataset(
             coords={
-                'nt' : (['nt'], self.time),
+                'time' : (['nt'], self.time_since),
                 'reach' : (['reach'], np.array(self.local_reach_IDs).astype(int))
             },
             data_vars = {
@@ -173,11 +195,18 @@ class DeltaPartition:
             }
         )
 
+        xrds['time'].attrs = {
+            'standard_name': 'time',
+            'long_name': 'time',
+            'units': 'days since {t}'.format(t=self.base_date.strftime('%Y-%m-%dT%H:%M:%SZ')),
+            'coverage_content_type': 'coordinate',
+            'calendar': 'standard',
+            'axis': 'T'
+        }
         xrds['reach'].attrs = {
             'long_name': 'Local Delta Reach ID',
             'units': '-'
         }
-
         xrds['Q'].attrs = {
             'standard_name': 'water_volume_transport_in_river_channel',
             'long_name': 'River Discharge',
@@ -188,7 +217,6 @@ class DeltaPartition:
             'coordinates': 'time reach_id',
             'type' : 'data'
         }
-
         xrds.attrs = {
             'title': 'SWOT Delta Discharge Product',
             'intitution': 'ETH Zurich, Los Alamos National Lab, Penn State University',
