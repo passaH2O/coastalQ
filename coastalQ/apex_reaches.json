@@ -92,22 +92,6 @@
     "apex_sword_ids": [22190200021]
   },
   {
-    "delta_name":"selenga",
-    "apex_sword_ids": []
-  },
-  {
-    "delta_name":"wairau",
-    "apex_sword_ids": []
-  },
-  {
-    "delta_name":"wax",
-    "apex_sword_ids": []
-  },
-  {
-    "delta_name":"yangtze",
-    "apex_sword_ids": []
-  },
-  {
     "delta_name":"yukon",
     "apex_sword_ids": [81210100081],
     "notes": "Closest reaches (81210100075, 81210100425) are classified as tidal, have been substituted with upstream river-classified reach."

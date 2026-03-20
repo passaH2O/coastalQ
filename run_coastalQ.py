@@ -16,7 +16,7 @@ from netCDF4 import Dataset
 from coastalQ import DeltaPartition
 
 # algorithms from which to partition discharge
-ALGO_METADATA = {
+algo_metadata = {
     'momma': {
         'qvar':'Q',
         'time':'time_str'
@@ -55,55 +55,97 @@ ALGO_METADATA = {
     }
 }
 
-mntdir = Path('C:/Users/kwright/Documents/Projects/ETH_SWOT_Confluence/coastalQ') # to be replaced with actual mount directory when running in workflow, e.g. "/mnt"
-OUTDIR = mntdir / 'data' / 'coastalq'
-# def run_coastwide(mntdir, index=None, reachfile=None):
-#     """Main method to execute coastalQ class methods."""
+def run_coastwide(mntdir, reachfile=None):
+    """
+    Main method to execute coastalQ class methods.
 
-# local directory containing delta network data
-DELTA_NETWORK_DIR = mntdir / 'coastalQ' / 'delta_networks'
-DELTA_NAMES = next(os.walk(DELTA_NETWORK_DIR))[1] # just directory names
-APEX_REACHES = json.load(open(mntdir / 'coastalQ' / 'apex_reaches.json'))
+    Parameters
+    ----------
+    mntdir (Path): Path to mount directory containing input and output folders
+    reachfile (str): Optional path to JSON file containing list of reach IDs to filter by
 
-for ALGO, METADATA in ALGO_METADATA.items():
-    # infolder = mntdir / 'flpe' / ALGO
-    INFOLDER = Path(r'C:/Users/kwright/Documents/Projects/ETH_SWOT_Confluence/SWOT-Confluence-Offline/confluence_withDelta/withDelta_mnt') / 'flpe' / ALGO
+    Returns
+    -------
+    None (saves partitioned discharge files to disk)
+    """
+
+    # local directory containing delta network data
+    delta_network_dir = mntdir / 'coastalq' / 'delta_networks'
+    outdir = mntdir / 'data' / 'coastalq'
+
+    # Load apex reaches metadata (maps delta_name to reach IDs)
+    with open(mntdir / 'coastalq' / 'apex_reaches.json') as fp:
+        delta_metadata = json.load(fp)
+
+    # Determine which deltas to process
+    if reachfile:
+        delta_names = filter_deltas_by_reaches(reachfile, delta_metadata)
+    else:
+        delta_names = [delta['delta_name'] for delta in delta_metadata]
     
-    files = glob.glob(str(INFOLDER / '*.nc'))
-    if len(files) == 0:
-        continue # skip if no files for this algorithm
-    
-    for NAME in DELTA_NAMES:
-    # NAME = 'mackenzie' # for testing
-        try:
-            # instantiate delta object and load edge weights from disk
-            delta_partition = DeltaPartition(delta_name=NAME, output_dir=OUTDIR)
-            delta_partition.load_edge_weights(DELTA_NETWORK_DIR)
-
-            # find SWORD apex reach for this delta
-            inflow_ids = [r['apex_sword_ids'] for r in APEX_REACHES if r['delta_name'] == NAME][0]
-            delta_partition.assign_inlets(inflow_ids)
-            
-            # grab discharge data for the relevant reaches from the algorithm folder
-            delta_inflow = delta_partition.combine_and_clean_discharge(INFOLDER, ALGO, METADATA)
-
-            # partition discharge to sub-reaches
-            delta_discharge = delta_partition.partition_discharge(delta_inflow.values)
-            time_since = delta_partition.time_to_epoch(delta_inflow['time'])
-
-            # save in outdir as deltaname_algorithm.nc, e.g. "mississippi_consensus.nc"
-            delta_partition.save_partitioned_discharge(algorithm_name=ALGO)
-            print(f"Successfully processed delta {NAME} for algorithm {ALGO}")
+    # Loop through algorithms and deltas
+    for algo, metadata in algo_metadata.items():
         
-        except Exception as e:
-            print(f"Error processing delta {NAME} for algorithm {ALGO}: {e}")
-            continue
+        # look for output files for this algorithm in the expected location
+        infolder = mntdir / 'flpe' / algo
+        files = glob.glob(str(infolder / '*.nc'))
+        if len(files) == 0:
+            continue # skip if no files for this algorithm
+        
+        # loop through deltas and attempt to partition discharge for each
+        for name in delta_names:
+            try:
+                # instantiate delta object and load edge weights from disk
+                delta_partition = DeltaPartition(delta_name=name, output_dir=outdir)
+                delta_partition.load_edge_weights(delta_network_dir)
 
+                # find SWORD apex reach for this delta
+                inflow_ids = [r['apex_sword_ids'] for r in delta_metadata if r['delta_name'] == name][0]
+                delta_partition.assign_inlets(inflow_ids)
+                
+                # grab discharge data for the relevant reaches from the algorithm folder
+                delta_inflow = delta_partition.combine_and_clean_discharge(infolder, algo, metadata)
 
-# if __name__ == "__main__":
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument("--mntdir", type=str, default="/mnt", help="Mount directory.")
-#     parser.add_argument("-i", "--index", type=parse_range)#, required=True)
-#     parser.add_argument("-r", "--reachfile", type=str, default="reaches.json", help="Reach JSON file.")
-#     args = parser.parse_args()
-#     run_coastwide(Path(args.mntdir), args.index, args.reachfile)
+                # partition discharge to sub-reaches
+                delta_discharge = delta_partition.partition_discharge(delta_inflow.values)
+                time_since = delta_partition.time_to_epoch(delta_inflow['time'])
+
+                # save in outdir as deltaname_algorithm.nc, e.g. "mississippi_consensus.nc"
+                delta_partition.save_partitioned_discharge(algorithm_name=algo)
+                print(f"Successfully processed delta {name} for algorithm {algo}")
+            
+            except Exception as e:
+                print(f"Error processing delta {name} for algorithm {algo}: {e}")
+                continue
+
+def filter_deltas_by_reaches(reachfile, delta_metadata):
+    """
+    Helper function to filter deltas based on reaches of interest.
+    
+    Parameters
+    ----------
+    reachfile (str): path to JSON file containing list of reach IDs to filter by
+    delta_metadata (list): list of dicts containing delta metadata, including apex reach IDs
+    
+    Returns
+    ----------
+    set of delta names that have apex reaches matching the reach IDs in the reachfile
+    """
+    with open(reachfile) as fp:
+        reaches = json.load(fp)
+    reach_ids_in_file = set(r['reach_id'] for r in reaches)
+    
+    deltas_to_process = set()
+    for delta in delta_metadata:
+        if set(delta['apex_sword_ids']).issubset(set(reach_ids_in_file)):
+            deltas_to_process.add(delta['delta_name'])
+    
+    return deltas_to_process
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mntdir", type=str, default="/mnt", help="Mount directory.")
+    parser.add_argument("-i", "--index", help="Range of indices, not used, included for compatibility.")
+    parser.add_argument("-r", "--reachfile", type=str, default="/mnt/input/reaches.json", help="Reach JSON file.")
+    args = parser.parse_args()
+    run_coastwide(Path(args.mntdir), args.reachfile)
