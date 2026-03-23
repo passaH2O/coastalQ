@@ -70,11 +70,11 @@ def run_coastwide(mntdir, reachfile=None):
     """
 
     # local directory containing delta network data
-    delta_network_dir = mntdir / 'coastalq' / 'delta_networks'
-    outdir = mntdir / 'data' / 'coastalq'
+    delta_network_dir = Path('/app/coastalQ') / 'delta_networks'
+    outdir = mntdir / 'coastalq'
 
     # Load apex reaches metadata (maps delta_name to reach IDs)
-    with open(mntdir / 'coastalq' / 'apex_reaches.json') as fp:
+    with open(Path('/app/coastalQ') / 'apex_reaches.json') as fp:
         delta_metadata = json.load(fp)
 
     # Determine which deltas to process
