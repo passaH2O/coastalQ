@@ -8,7 +8,7 @@ import pandas as pd
 import xarray as xr
 
 class DeltaPartition:
-    def __init__(self, delta_name, output_dir=None, base_date="2020-01-01T00:00:00Z", **kwargs):
+    def __init__(self, delta_name, output_dir=None, base_date="2000-01-01T00:00:00Z", **kwargs):
         self.delta_name = delta_name.lower() # ensure delta name is lowercase for consistency with metadata
         self.width_adjacency = None
         self.apex_sword_ids = None
@@ -93,11 +93,18 @@ class DeltaPartition:
         (xr.DataArray) Cleaned discharge time series summed across all apex reaches for the delta, with time dimension and any missing data filtered out
         """
         inflow_files = [infolder / f'{reach_id}_{algo}.nc' for reach_id in self.apex_sword_ids]
+        qvar = metadata['qvar']
+        tvar = metadata['time']
         
         cleaned_datasets = []
         for file in inflow_files:
             # Open the dataset
-            ds = xr.open_dataset(file)
+            if '/' in qvar:
+                group,qvar = qvar.split('/')
+                dt = xr.open_datatree(file)
+                ds = xr.merge([dt.to_dataset(), dt[group].to_dataset()])
+            else:
+                ds = xr.open_dataset(file)
             
             # for sic4dvar, clean up some dimensions as it causes problems later
             if algo == 'sic4dvar':
@@ -105,12 +112,12 @@ class DeltaPartition:
                 ds = ds.swap_dims({'nt': 'time'})
 
             # make sense of the time variable
-            parsed_times = pd.to_datetime(ds[metadata['time']].values, errors='coerce')
+            parsed_times = pd.to_datetime(ds[tvar].values, errors='coerce')
             parsed_times = parsed_times.tz_localize(None).astype('datetime64[ns]') # ensure timezone precision
-            ds = ds.assign_coords(time=(ds[metadata['time']].dims, parsed_times))
+            ds = ds.assign_coords(time=(ds[tvar].dims, parsed_times))
 
             # make time main dimension if it's not already
-            main_dim = ds[metadata['time']].dims[0]
+            main_dim = ds[tvar].dims[0]
             if main_dim != 'time':
                 ds = ds.swap_dims({main_dim: 'time'})
             
@@ -124,12 +131,8 @@ class DeltaPartition:
         # concatenate datasets along the time dimension, match by calendar day, and sum
         combined_ds = xr.concat(cleaned_datasets, data_vars='all', dim='time')
         combined_ds = combined_ds.sortby('time')
-        daily_discharge = combined_ds[metadata['qvar']].resample(time='1D').sum(dim='time', skipna=True, min_count=1)
-        # daily_discharge['nt'] = combined_ds['nt'].resample(time='1D').last(skipna=True).astype(int)
-
-        # keep only time steps with valid discharge values
-        daily_discharge = daily_discharge.dropna(dim='time', how='all')
-
+        daily_discharge = combined_ds[qvar].resample(time='1D').sum(dim='time', skipna=True, min_count=1)
+        
         return daily_discharge
 
     def partition_discharge(self, discharge):
@@ -150,7 +153,7 @@ class DeltaPartition:
             discharge = np.array([discharge]) # convert to np.ndarray if not already
 
         # partition discharge according to routing vector
-        self.sub_reach_discharge = discharge[:,np.newaxis] * self.norm_partitioning
+        self.sub_reach_discharge = discharge[:,:,np.newaxis] * self.norm_partitioning
 
         return self.sub_reach_discharge
 
@@ -164,47 +167,57 @@ class DeltaPartition:
 
         Returns
         ----------
-        (np.ndarray) 1D array of floats corresponding to days since base date
+        (np.ndarray) 1D array of floats corresponding to seconds since base date
         """
         epoch = pd.Timestamp(self.base_date)
         times = pd.to_datetime(times)
-        days = (times.tz_localize(None) - epoch.tz_localize(None)).total_seconds() / (24*3600)
-        self.time_since = np.array([float(t) for t in days])
+        seconds = (times.tz_localize(None) - epoch.tz_localize(None)).total_seconds()
+        self.time_since = np.array([float(t) for t in seconds])
         return self.time_since
 
-    def save_partitioned_discharge(self, algorithm_name):
+    def save_partitioned_discharge(self, algorithms):
         """
         Method to save partitioned discharge as NetCDF file.
 
         Parameters
         ----------
-        algorithm_name (str) : Name of discharge algorithm used to compute discharge at delta apex, to be included in output filename and metadata
+        algorithms (list) : List of discharge algorithm names used to compute discharge at delta apex, to be included in output filename and metadata
 
         Saves
         ----------
-        NetCDF file in output directory with filename {delta_name}_{algorithm_name}.nc, e.g. "mississippi_consensus.nc"
+        NetCDF file in output directory with filename {delta_name}.nc, e.g. "mississippi.nc"
         """
         
         xrds = xr.Dataset(
             coords={
                 'time' : (['nt'], self.time_since),
-                'reach' : (['reach'], np.array(self.local_reach_IDs).astype(int))
+                'reach' : (['reach'], np.array(self.local_reach_IDs).astype(int)),
+                'sword_inlets' : (['sword_inlets'], np.array(self.apex_sword_ids).astype(int)),
+                'algos' : (['algos'], algorithms)
             },
             data_vars = {
-                'Q' : (['nt','reach'], self.sub_reach_discharge)
+                'Q' : (['algos','nt','reach'], self.sub_reach_discharge)
             }
         )
 
         xrds['time'].attrs = {
             'standard_name': 'time',
             'long_name': 'time',
-            'units': 'days since {t}'.format(t=self.base_date.strftime('%Y-%m-%dT%H:%M:%SZ')),
+            'units': 'seconds since {t}'.format(t=self.base_date.strftime('%Y-%m-%dT%H:%M:%SZ')),
             'coverage_content_type': 'coordinate',
             'calendar': 'standard',
             'axis': 'T'
         }
         xrds['reach'].attrs = {
             'long_name': 'Local Delta Reach ID',
+            'units': '-'
+        }
+        xrds['sword_inlets'].attrs = {
+            'long_name': 'SWORD Reach ID',
+            'units': '-'
+        }
+        xrds['algos'].attrs = {
+            'long_name': 'Algorithm Name',
             'units': '-'
         }
         xrds['Q'].attrs = {
@@ -221,6 +234,8 @@ class DeltaPartition:
             'title': 'SWOT Delta Discharge Product',
             'intitution': 'ETH Zurich, Los Alamos National Lab, Penn State University',
             'source': 'SWOT coastalQ Confluence Module',
+            'delta' : self.delta_name,
+            'algorithms': ', '.join(algorithms),
             'creator_name': 'Kyle Wright, Eleanor Hensen, Sabrina Ashik, Jon Schwenk, Paola Passalacqua, Anastasia Piliouras',
             'creator_email': 'kwright at ethz.ch',
             'file_type': 'array',
@@ -233,8 +248,8 @@ class DeltaPartition:
             'license': 'Freely Distributed'
         }
 
-        # save to output directory with filename {delta_name}_{algorithm_name}.nc, e.g. "mississippi_consensus.nc"
-        filename = os.path.join(self.output_dir, f"{self.delta_name}_{algorithm_name}.nc")
+        # save to output directory with filename {delta_name}.nc, e.g. "mississippi.nc"
+        filename = os.path.join(self.output_dir, f"{self.delta_name}.nc")
         xrds.to_netcdf(filename) # Save
         return
 

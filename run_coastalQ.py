@@ -34,10 +34,10 @@ algo_metadata = {
     #     'qvar':'q/q',
     #     'time':'time_str'
     # },
-    # 'metroman':{
-    #     'qvar':'average/allq',
-    #     'time':'time_str'
-    # },
+    'metroman':{
+        'qvar':'average/allq',
+        'time':'time_str'
+    },
     'sic4dvar':{
         'qvar':'Q_da',
         'time':'times'
@@ -88,40 +88,52 @@ def run_coastwide(mntdir, reachfile=None):
     else:
         delta_names = [delta['delta_name'] for delta in delta_metadata]
     
-    # Loop through algorithms and deltas
-    for algo, metadata in algo_metadata.items():
+    # Loop through deltas
+    for name in delta_names:
+        # initialize list to hold discharge arrays for each algorithm
+        delta_inflows = []
+        algorithm_names = []
         
-        # look for output files for this algorithm in the expected location
-        infolder = mntdir / 'flpe' / algo
-        files = glob.glob(str(infolder / '*.nc'))
-        if len(files) == 0:
-            continue # skip if no files for this algorithm
+        # instantiate delta object and load edge weights from disk
+        delta_partition = DeltaPartition(delta_name=name, output_dir=outdir)
+        delta_partition.load_edge_weights(delta_network_dir)
+
+        # find SWORD apex reach for this delta
+        inflow_ids = [r['apex_sword_ids'] for r in delta_metadata if r['delta_name'] == name][0]
+        delta_partition.assign_inlets(inflow_ids)
         
-        # loop through deltas and attempt to partition discharge for each
-        for name in delta_names:
+        # loop through algorithms
+        for algo, metadata in algo_metadata.items():
+            # look for output files for this algorithm in the expected location
+            infolder = mntdir / 'flpe' / algo
+            files = glob.glob(str(infolder / '*.nc'))
+            if len(files) == 0:
+                continue # skip if no files for this algorithm
+
             try:
-                # instantiate delta object and load edge weights from disk
-                delta_partition = DeltaPartition(delta_name=name, output_dir=outdir)
-                delta_partition.load_edge_weights(delta_network_dir)
-
-                # find SWORD apex reach for this delta
-                inflow_ids = [r['apex_sword_ids'] for r in delta_metadata if r['delta_name'] == name][0]
-                delta_partition.assign_inlets(inflow_ids)
-                
                 # grab discharge data for the relevant reaches from the algorithm folder
-                delta_inflow = delta_partition.combine_and_clean_discharge(infolder, algo, metadata)
-
-                # partition discharge to sub-reaches
-                delta_discharge = delta_partition.partition_discharge(delta_inflow.values)
-                time_since = delta_partition.time_to_epoch(delta_inflow['time'])
-
-                # save in outdir as deltaname_algorithm.nc, e.g. "mississippi_consensus.nc"
-                delta_partition.save_partitioned_discharge(algorithm_name=algo)
-                print(f"Successfully processed delta {name} for algorithm {algo}")
-            
+                delta_inflows.append(delta_partition.combine_and_clean_discharge(infolder, algo, metadata))
+                algorithm_names.append(algo)
             except Exception as e:
                 print(f"Error processing delta {name} for algorithm {algo}: {e}")
                 continue
+        
+        if not delta_inflows:
+            print(f"No algorithm data found for delta {name}, skipping")
+            continue
+        
+        # concatenate inflows from different algorithms along new 'algos' dimension, dropping time steps with all NaNs
+        delta_inflow = xr.concat(delta_inflows, dim='algos', join='outer')
+        delta_inflow = delta_inflow.dropna(dim='time', how='all')
+
+        # partition discharge to sub-reaches
+        delta_discharge = delta_partition.partition_discharge(delta_inflow.values)
+        time_since = delta_partition.time_to_epoch(delta_inflow['time'])
+        
+        # save in outdir as deltaname.nc, e.g. "mississippi.nc"
+        delta_partition.save_partitioned_discharge(algorithms = algorithm_names)
+        print(f"Successfully processed delta {name}")
+    return
 
 def filter_deltas_by_reaches(reachfile, delta_metadata):
     """
