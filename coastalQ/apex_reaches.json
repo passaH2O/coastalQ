@@ -1,8 +1,8 @@
 [
   {
     "delta_name":"amazon",
-    "apex_sword_ids": [62307000295,62307000035,62235100011,62221500131,62232300021],
-    "notes": "First two reaches (62307000295,62307000035) classified as 'tidal' and might not provide discharge, upstream river-classified reaches not yet identified."
+    "apex_sword_ids": [62233000065,62221100055,62232300021],
+    "notes": "Two inlet reaches (62307000295,62307000035) classified as 'tidal' and do not provide discharge, upstream river-classified reaches not yet identified."
   },
   {
     "delta_name":"colville",
@@ -50,7 +50,7 @@
   },
   {
     "delta_name":"mekong",
-    "apex_sword_ids": [44230000021,44220100031],
+    "apex_sword_ids": [44230000091,44220100031],
     "notes": "Closest reaches (44210000365, 44210000255) are classified as tidal, both have been substituted with upstream river-classified reaches."
   },
   {
