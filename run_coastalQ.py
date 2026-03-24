@@ -15,6 +15,11 @@ import xarray as xr
 from netCDF4 import Dataset
 from coastalQ import DeltaPartition
 
+# Build command format:
+# docker build --quiet -f {repo_path}/Dockerfile -t {docker_username}/coastalq:{tag_name} {repo_path}/coastalQ
+# Run command format:
+# docker run -v {mnt_dir}/input:/mnt/input -v {mnt_dir}/flpe:/mnt/flpe -v {mnt_dir}/coastalq:/mnt/coastalq {docker_username}/coastalq:{tag_name} --mntdir /mnt -r /mnt/input/reaches.json --index 0
+
 # algorithms from which to partition discharge
 algo_metadata = {
     'momma': {
