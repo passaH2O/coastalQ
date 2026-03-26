@@ -12,28 +12,28 @@ from pathlib import Path
 import argparse
 import numpy as np
 import xarray as xr
-from netCDF4 import Dataset
+# from netCDF4 import Dataset
 from coastalQ import DeltaPartition
 
 # Build command format:
 # docker build --quiet -f {repo_path}/Dockerfile -t {docker_username}/coastalq:{tag_name} {repo_path}/coastalQ
 # Run command format:
-# docker run -v {mnt_dir}/input:/mnt/input -v {mnt_dir}/flpe:/mnt/flpe -v {mnt_dir}/coastalq:/mnt/coastalq {docker_username}/coastalq:{tag_name} --mntdir /mnt -r /mnt/input/reaches.json --index 0
+# docker run -v {mnt_dir}:/mnt/ {docker_username}/coastalq:{tag_name} --mntdir /mnt -r /mnt/input/reaches.json --index 0
 
-# algorithms from which to partition discharge
+# algorithms from which to partition discharge, formatting information copied from consensus scripts
 algo_metadata = {
     'momma': {
         'qvar':'Q',
         'time':'time_str'
     },
-    # 'hivdi': {
-    #     'qvar':'reach/Q',
-    #     'time':'time'
-    # },
-    # 'neobam':{
-    #     'qvar':'q/q',
-    #     'time':'time_str'
-    # },
+    'hivdi': {
+        'qvar':'reach/Q',
+        'time':'time'
+    },
+    'neobam':{
+        'qvar':'q/q',
+        'time':'time_str'
+    },
     'metroman':{
         'qvar':'average/allq',
         'time':'time_str'
@@ -42,21 +42,13 @@ algo_metadata = {
         'qvar':'Q_da',
         'time':'times'
     },
-    # 'sad':{
-    #     'qvar':'Qa',
-    #     'time':'time_str'
-    # },
+    'sad':{
+        'qvar':'Qa',
+        'time':'time_str'
+    },
     'consensus':{
         'qvar':'consensus_q',
         'time':'time_str'
-    # },
-    # 'integrator':{
-    #     'qvar':'q_u',
-    #     'time':'time_str'
-    # },
-    # 'offline':{
-    #     'qvar':'q_u',
-    #     'time':'time_str'
     }
 }
 
@@ -162,7 +154,7 @@ def filter_deltas_by_reaches(reachfile, delta_metadata):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--mntdir", type=str, default="/mnt", help="Mount directory.")
-    parser.add_argument("-i", "--index", help="Range of indices, not used, included for compatibility.")
+    parser.add_argument("-i", "--index", help="Range of indices (Not used, included for consistency).")
     parser.add_argument("-r", "--reachfile", type=str, default="/mnt/input/reaches.json", help="Reach JSON file.")
     args = parser.parse_args()
     run_coastwide(Path(args.mntdir), args.reachfile)
