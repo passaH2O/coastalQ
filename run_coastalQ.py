@@ -66,7 +66,7 @@ def run_coastwide(mntdir, reachfile=None):
 
     # local directory containing delta network data
     delta_network_dir = Path('/app/coastalQ') / 'delta_networks'
-    outdir = mntdir / 'coastalq'
+    outdir = mntdir / 'data' / 'coastalq'
 
     # Load apex reaches metadata (maps delta_name to reach IDs)
     with open(Path('/app/coastalQ') / 'apex_reaches.json') as fp:
@@ -95,7 +95,7 @@ def run_coastwide(mntdir, reachfile=None):
         # loop through algorithms
         for algo, metadata in algo_metadata.items():
             # look for output files for this algorithm in the expected location
-            infolder = mntdir / 'flpe' / algo
+            infolder = mntdir / 'data' / 'flpe' / algo
             files = glob.glob(str(infolder / '*.nc'))
             if len(files) == 0:
                 continue # skip if no files for this algorithm
@@ -153,6 +153,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--mntdir", type=str, default="/mnt", help="Mount directory.")
     parser.add_argument("-i", "--index", help="Range of indices (Not used, included for consistency).")
-    parser.add_argument("-r", "--reachfile", type=str, default="/mnt/input/reaches.json", help="Reach JSON file.")
+    parser.add_argument("-r", "--reachfile", type=str, default="/mnt/data/input/reaches.json", help="Reach JSON file.")
     args = parser.parse_args()
     run_coastwide(Path(args.mntdir), args.reachfile)

@@ -263,9 +263,9 @@ class DeltaPartition:
             'title': 'SWOT Delta Discharge Product',
             'intitution': 'ETH Zurich, Los Alamos National Lab, Penn State University',
             'source': 'SWOT coastalQ Confluence Module',
-            'delta' : self.delta_name,
+            'delta_name' : self.delta_name,
             'algorithms': ', '.join(algorithms),
-            'creator_name': 'Kyle Wright, Eleanor Hensen, Sabrina Ashik, Jon Schwenk, Paola Passalacqua, Anastasia Piliouras',
+            'creator_name': 'Wright, K., Hensen, E., Ashik, S., Schwenk, J., Passalacqua, P., Piliouras, A.',
             'creator_email': 'kwright at ethz.ch',
             'file_type': 'array',
             'Conventions': 'CF-1.10, ACDD-1.3',
@@ -274,7 +274,8 @@ class DeltaPartition:
             'history': "None",
             'comment': "None",
             'keywords': 'SWOT, SWORD, Delta, coastalQ, Discharge',
-            'license': 'Freely Distributed'
+            'license': 'Freely Distributed',
+            'note': "Reach IDs currently represent local delta reach IDs, not global SWORD reach IDs. The local network for each delta can be found in the coastalQ module repository."
         }
 
         # save to output directory with filename {delta_name}.nc, e.g. "mississippi.nc"
