@@ -5,14 +5,12 @@ Date   : March, 2026
 Purpose: Delta Discharge Partitioning
 """
 
-import os
 import glob
 import json
 from pathlib import Path
 import argparse
 import numpy as np
 import xarray as xr
-# from netCDF4 import Dataset
 from coastalQ import DeltaPartition
 
 # Build command format:
@@ -59,7 +57,7 @@ def run_coastwide(mntdir, reachfile=None):
     Parameters
     ----------
     mntdir (Path): Path to mount directory containing input and output folders
-    reachfile (str): Optional path to JSON file containing list of reach IDs to filter by
+    reachfile (str): Optional path to JSON file containing list of reach IDs by which to filter
 
     Returns
     -------
