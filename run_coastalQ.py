@@ -16,7 +16,7 @@ from coastalQ import DeltaPartition
 # Build command format:
 # docker build --quiet -f {repo_path}/Dockerfile -t {docker_username}/coastalq:{tag_name} {repo_path}/coastalQ
 # Run command format:
-# docker run -v {mnt_dir}:/mnt/ {docker_username}/coastalq:{tag_name} --mntdir /mnt -r /mnt/input/reaches.json --index 0
+# docker run -v {mnt_dir}/input:/mnt/data/input -v {mnt_dir}/flpe:/mnt/data/flpe -v {mnt_dir}/coastalq:/mnt/data/coastalq {docker_username}/coastalq:{tag_name} --mntdir /mnt -r /mnt/data/input/reaches.json --index 0
 
 # algorithms from which to partition discharge, formatting information copied from consensus scripts
 algo_metadata = {

@@ -168,12 +168,12 @@ class DeltaPartition:
         
         Parameters
         ----------
-        discharge (np.ndarray) : 1D array of discharge values computed at the
+        discharge (np.ndarray) : 2D array of discharge values computed at the
             delta apex (i.e. from SWOT discharge algorithms)
 
         Returns
         ----------
-        (np.ndarray) 2D array of discharge values partitioned into each delta sub-reach
+        (np.ndarray) 3D array of discharge values partitioned into each delta sub-reach
         """
         if getattr(self, 'norm_partitioning', None) is None:
             self.load_edge_weights() # make sure routing vector is loaded
